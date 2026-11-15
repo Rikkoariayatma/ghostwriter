@@ -1,0 +1,340 @@
+/* Ghostwriter — design system.
+   Midnight palette, candle-glow accents, serif letters.
+   No webfonts: offline-first, system serif/sans only. */
+
+:root {
+  --bg: #0b0a10;
+  --bg-2: #14121d;
+  --card: #171423;
+  --card-2: #1e1a2e;
+  --line: #2c2740;
+  --bone: #ece7dc;
+  --muted: #a49dbd;
+  --gold: #e8b34b;
+  --gold-dim: #b98a2e;
+  --ember: #d96f32;
+  --danger: #e0685a;
+  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius: 14px;
+  --glow: 0 0 0 1px rgba(232, 179, 75, 0.12), 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(88, 66, 140, 0.25), transparent 60%),
+    radial-gradient(900px 500px at 85% 110%, rgba(217, 111, 50, 0.08), transparent 60%),
+    var(--bg);
+  color: var(--bone);
+  font-family: var(--sans);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+body.no-scroll { overflow: hidden; }
+
+a { color: var(--gold); }
+a:hover { color: #f4cd7d; }
+
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 0.5em;
+}
+
+p { margin: 0 0 1em; }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.big { font-size: 1.6rem; font-family: var(--serif); margin: 0.2em 0; }
+.danger { color: var(--danger); }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--gold);
+  color: #111;
+  padding: 0.5em 1em;
+  z-index: 100;
+}
+.skip-link:focus { left: 0; }
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* header */
+.site-header {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  color: var(--bone);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.brand:hover { color: var(--gold); }
+.flame-mark { font-size: 1.1rem; margin-right: 0.15em; }
+#nav { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; }
+#nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+#nav a:hover { color: var(--gold); }
+
+.site-footer {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* cards */
+.card {
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--glow);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.25rem;
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.75rem 0 0.75rem;
+}
+.section-head h2 { margin: 0; }
+
+/* lock screen */
+.lock { text-align: center; margin-top: 2rem; }
+.lock .flame { font-size: 2.5rem; margin: 0; }
+.lock h1 { font-size: 2.2rem; margin: 0.25em 0; }
+.tagline { color: var(--muted); font-family: var(--serif); font-style: italic; font-size: 1.1rem; }
+.lock form { text-align: left; max-width: 420px; margin: 1.25rem auto 0; }
+.plain { text-align: left; max-width: 480px; margin: 0 auto; }
+
+/* heartbeat */
+.heartbeat { border-left: 3px solid var(--gold); }
+.heartbeat-overdue { border-left-color: var(--ember); }
+
+/* forms */
+label { display: block; margin-bottom: 1rem; font-size: 0.95rem; }
+label input, label select, label textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--bone);
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+}
+label textarea { resize: vertical; min-height: 12rem; font-family: var(--serif); font-size: 1.05rem; line-height: 1.7; }
+input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.75rem 1rem 0.25rem;
+  margin: 0 0 1.25rem;
+}
+legend { font-size: 0.95rem; padding: 0 0.4em; }
+.radio { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; }
+.radio input { width: auto; margin: 0; accent-color: var(--gold); }
+.date-label { margin-top: 0.75rem; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+.inline-form label { margin-bottom: 0; flex: 1 1 200px; }
+
+/* buttons */
+.btn {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 0.55rem 1.15rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+}
+.btn-gold {
+  background: linear-gradient(180deg, #f2c766, #dd9f33);
+  color: #1a1405;
+  box-shadow: 0 0 18px rgba(232, 179, 75, 0.35);
+}
+.btn-gold:hover { filter: brightness(1.07); color: #1a1405; }
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--bone);
+}
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-danger-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--danger);
+}
+.btn-danger-ghost:hover { border-color: var(--danger); }
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.file-btn { cursor: pointer; }
+.row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+
+/* letters */
+.letter-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.letter-head h3 { margin: 0; }
+.letter-head a { color: var(--bone); text-decoration: none; }
+.letter-head a:hover { color: var(--gold); }
+.badge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2em 0.7em;
+  white-space: nowrap;
+}
+.badge-sealed { color: var(--gold); border-color: var(--gold-dim); }
+.badge-released { color: #9fd6a4; border-color: #4c7a54; }
+.badge-draft { color: var(--muted); }
+.letter-read .letter-body {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 1.25rem;
+  margin: 1.25rem 0;
+}
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-bottom: 0.5em;
+}
+
+/* recipients */
+.recipient-list { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+.recipient-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* notices */
+.notice {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 9px;
+  background: var(--bg-2);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.notice-error { border-left-color: var(--danger); }
+
+/* demo card */
+.demo-card { border-style: dashed; }
+
+/* ceremony */
+.ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: radial-gradient(900px 500px at 50% 110%, rgba(217, 111, 50, 0.16), transparent 60%), #07060b;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4rem 1.25rem 3rem;
+}
+.ceremony-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ceremony-inner {
+  position: relative;
+  max-width: 620px;
+  width: 100%;
+  text-align: center;
+}
+.ceremony-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.8rem;
+  color: var(--gold);
+  animation: ceremony-in 1s ease both;
+}
+.ceremony-title {
+  font-size: 2rem;
+  margin: 0.25em 0;
+  animation: ceremony-in 1s ease 0.3s both;
+}
+.ceremony-to {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--muted);
+  animation: ceremony-in 1s ease 0.6s both;
+}
+.ceremony-body {
+  text-align: left;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  line-height: 1.85;
+  margin: 2rem 0;
+}
+.ceremony-line { opacity: 0; animation: ceremony-in 0.9s ease both; }
+.ceremony-close { margin-top: 1rem; animation: ceremony-in 1s ease 1.2s both; }
+@keyframes ceremony-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ceremony-line, .ceremony-kicker, .ceremony-title, .ceremony-to, .ceremony-close {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .letter-head { flex-direction: column; gap: 0.25rem; }
+  .ceremony-title { font-size: 1.6rem; }
+}
