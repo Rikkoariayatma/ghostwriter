@@ -29,7 +29,7 @@ it already happened.
 ## Session log
 | # | Date | Kiro surface | Task | What Kiro did | Commit / notes |
 |---|------|--------------|------|---------------|----------------|
-| 1 | 2026-11-16 | Kiro IDE | Task 6 — property-style crypto tests | Created `tests/crypto.test.mjs` (plain Node, no framework): base64 round-trip (100 random buffers), encrypt/decrypt round-trip for empty string, ASCII, Unicode (BMP + emoji), 10 000-char strings, IV-uniqueness check; tamper detection for flipped ciphertext byte, flipped IV byte, and truncated ciphertext; wrong-passphrase failure (direct + 5 ciphertexts); unlock-check verification (correct key, wrong key, tampered `.data`, tampered `.iv`); export/import round-trip (re-derive from same salt, decrypt all, unlock-check pass/fail). All 20 tests pass. Keys derived once up-front in parallel to keep runtime reasonable at 250 000 PBKDF2 iterations. | see task-6 commit |
+| 1 | 2026-11-16 | Kiro IDE | Task 6 — property-style crypto tests | Created `tests/crypto.test.mjs` (plain Node, no framework): base64 round-trip (100 random buffers), encrypt/decrypt round-trip for empty string, ASCII, Unicode (BMP + emoji), 10 000-char strings, IV-uniqueness check; tamper detection for flipped ciphertext byte, flipped IV byte, and truncated ciphertext; wrong-passphrase failure (direct + 5 ciphertexts); unlock-check verification (correct key, wrong key, tampered `.data`, tampered `.iv`); export/import round-trip (re-derive from same salt, decrypt all, unlock-check pass/fail). All 20 tests pass. Keys derived once up-front in parallel to keep runtime reasonable at 250 000 PBKDF2 iterations. | `109f7c1` |
 | 2 | — | — | — | _not run yet_ | — |
 | 3 | — | — | — | _not run yet_ | — |
 
