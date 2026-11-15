@@ -2,7 +2,7 @@
 // Cache-first for the app shell so the app works fully offline after
 // the first load. Version the cache name when the shell changes.
 
-const CACHE = 'ghostwriter-v1';
+const CACHE = 'ghostwriter-v2';
 const SHELL = [
   './',
   './index.html',

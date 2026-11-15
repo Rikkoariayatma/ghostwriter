@@ -212,6 +212,14 @@ legend { font-size: 0.95rem; padding: 0 0.4em; }
   color: var(--danger);
 }
 .btn-danger-ghost:hover { border-color: var(--danger); }
+/* Armed state for two-click release confirmation */
+.btn-armed {
+  background: linear-gradient(180deg, #e8895a, #c45f2e);
+  color: #1a0d05;
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(217, 111, 50, 0.45);
+}
+.btn-armed:hover { filter: brightness(1.07); color: #1a0d05; }
 .linklike {
   background: none;
   border: none;

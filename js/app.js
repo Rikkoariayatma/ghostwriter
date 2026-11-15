@@ -422,7 +422,7 @@ function renderCompose(prefill = {}) {
       <h2>Write a letter</h2>
       <p class="muted">Sealed letters cannot be edited afterwards. Save a draft
       if you are not ready — drafts stay on this device, encrypted.</p>
-      <form id="compose-form">
+      <form id="compose-form" novalidate>
         <input type="hidden" name="id" value="${esc(prefill.id || '')}">
         <label>Title
           <input name="title" required maxlength="120" value="${esc(prefill.title || '')}" placeholder="For example: For my daughter's wedding day">
@@ -446,17 +446,29 @@ function renderCompose(prefill = {}) {
           </label>
         </fieldset>
         <div class="row">
-          <button class="btn btn-ghost" type="submit" name="intent" value="draft">Save draft</button>
-          <button class="btn btn-gold" type="submit" name="intent" value="seal">Seal this letter</button>
+          <button class="btn btn-ghost" type="button" data-compose-intent="draft">Save draft</button>
+          <button class="btn btn-gold"  type="button" data-compose-intent="seal">Seal this letter</button>
         </div>
       </form>
     </section>`;
+
+  // The buttons are type="button" with data-compose-intent, so they never trigger
+  // a native form submit — but we also wire the form's submit event defensively.
+  const form = view.querySelector('#compose-form');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault(); // defensive — should not be reachable with type="button" buttons
+  });
+
+  form.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-compose-intent]');
+    if (!btn) return;
+    handleCompose(form, btn.dataset.composeIntent);
+  });
 }
 
-async function handleCompose(e) {
-  e.preventDefault();
-  const f = new FormData(e.target);
-  const intent = f.get('intent');
+async function handleCompose(form, intent) {
+  const f = new FormData(form);
   const title = String(f.get('title') || '').trim();
   const recipientId = String(f.get('recipientId') || '');
   const body = String(f.get('body') || '');
@@ -655,10 +667,51 @@ function renderSettings() {
 }
 
 // ---------- actions ----------
-async function releaseLetter(id) {
+
+// Two-click arm/fire pattern for release — avoids confirm() which automated
+// browsers dismiss automatically, and is clearer about the irreversibility.
+const _releaseArmed = new Map(); // letterId → timeout handle
+
+function armRelease(id, btn) {
+  // Disarm any other currently armed button first.
+  for (const [otherId, timer] of _releaseArmed) {
+    if (otherId !== id) {
+      clearTimeout(timer);
+      _releaseArmed.delete(otherId);
+      // Reset the other button's label if it's still in the DOM.
+      const other = document.querySelector(`[data-action="release"][data-id="${esc(otherId)}"]`);
+      if (other) other.textContent = other.dataset.origLabel || 'Release';
+    }
+  }
+
+  if (!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent.trim();
+  btn.textContent = 'Click again to confirm';
+  btn.classList.add('btn-armed');
+
+  const timer = setTimeout(() => {
+    _releaseArmed.delete(id);
+    if (document.body.contains(btn)) {
+      btn.textContent = btn.dataset.origLabel || 'Release';
+      btn.classList.remove('btn-armed');
+    }
+  }, 4000);
+
+  _releaseArmed.set(id, timer);
+}
+
+async function releaseLetter(id, btn) {
   const letter = state.letters.find((l) => l.id === id);
   if (!letter || !isReleasable(letter)) return;
-  if (!confirm(`Release "${letter.title}" to ${recipientName(letter.recipientId)}? This cannot be undone.`)) return;
+
+  if (!_releaseArmed.has(id)) {
+    armRelease(id, btn);
+    return;
+  }
+
+  // Second click — confirmed. Disarm and proceed.
+  clearTimeout(_releaseArmed.get(id));
+  _releaseArmed.delete(id);
+
   let body = '';
   try {
     body = await decryptText(getSessionKey(), letter.iv, letter.bodyEnc);
@@ -885,7 +938,6 @@ document.addEventListener('submit', (e) => {
   const id = e.target.id;
   if (id === 'setup-form') handleSetup(e);
   else if (id === 'unlock-form') handleUnlock(e);
-  else if (id === 'compose-form') handleCompose(e);
   else if (id === 'recipient-form') handleRecipient(e);
   else if (id === 'passphrase-form') changePassphrase(e);
   else if (id === 'heartbeat-form') {
@@ -898,6 +950,10 @@ document.addEventListener('submit', (e) => {
         render();
       });
     }
+  } else if (id === 'compose-form') {
+    // compose-form uses type="button" buttons wired directly in renderCompose;
+    // this branch is a defensive fallback only.
+    e.preventDefault();
   }
 });
 
@@ -925,7 +981,7 @@ document.addEventListener('click', async (e) => {
     await saveSettings(state.settings);
     setNotice("Checked in. The heartbeat is reset — your letters stay sealed.");
     render();
-  } else if (action === 'release') releaseLetter(id);
+  } else if (action === 'release') releaseLetter(id, btn);
   else if (action === 'replay') replayLetter(id);
   else if (action === 'delete-letter') {
     const l = state.letters.find((x) => x.id === id);
