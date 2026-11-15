@@ -147,7 +147,7 @@ function renderLock() {
              letters are gone forever — that is the price of real privacy.</p>
              <form id="setup-form">
                <label>Passphrase (at least 8 characters)
-                 <input name="pass" type="password" autocomplete="new-password" required minlength="8">
+                 <input name="pass" id="setup-pass" type="password" autocomplete="new-password" required minlength="8">
                </label>
                <label>Repeat passphrase
                  <input name="pass2" type="password" autocomplete="new-password" required minlength="8">
@@ -158,7 +158,7 @@ function renderLock() {
              this device — nothing leaves it.</p>
              <form id="unlock-form">
                <label>Passphrase
-                 <input name="pass" type="password" autocomplete="current-password" required autofocus>
+                 <input name="pass" id="unlock-pass" type="password" autocomplete="current-password" required>
                </label>
                <button class="btn btn-gold" type="submit">Unlock the vault</button>
              </form>
@@ -167,6 +167,9 @@ function renderLock() {
              everything in it will be lost.</p>`
       }
     </section>`;
+  // Move focus to the passphrase input so keyboard users can type immediately.
+  const passInput = view.querySelector('#unlock-pass, #setup-pass');
+  if (passInput) passInput.focus();
 }
 
 async function handleSetup(e) {
@@ -174,8 +177,18 @@ async function handleSetup(e) {
   const f = new FormData(e.target);
   const pass = String(f.get('pass') || '');
   const pass2 = String(f.get('pass2') || '');
-  if (pass.length < 8) return setNotice('Passphrase needs at least 8 characters.', 'error');
-  if (pass !== pass2) return setNotice('The two passphrases do not match.', 'error');
+  if (pass.length < 8) {
+    setNotice('Passphrase needs at least 8 characters.', 'error');
+    renderLock();
+    view.querySelector('#setup-pass')?.focus();
+    return;
+  }
+  if (pass !== pass2) {
+    setNotice('The two passphrases do not match.', 'error');
+    renderLock();
+    view.querySelector('#setup-pass')?.focus();
+    return;
+  }
   setNotice('Creating your vault…');
   renderLock();
   try {
@@ -214,6 +227,7 @@ async function handleUnlock(e) {
     if (!ok) {
       setNotice('That passphrase does not open this vault.', 'error');
       renderLock();
+      view.querySelector('#unlock-pass')?.focus();
       return;
     }
     setSessionKey(key);
@@ -223,16 +237,23 @@ async function handleUnlock(e) {
   } catch (err) {
     setNotice('Could not unlock: ' + err.message, 'error');
     renderLock();
+    view.querySelector('#unlock-pass')?.focus();
   }
 }
 
 // ---------- views ----------
 function renderNav() {
+  const hash = location.hash || '#/';
+  const path = hash.slice(2).split('?')[0];
+  function isCurrent(slug) {
+    if (slug === '/') return path === '' || path === '/';
+    return path === slug || path.startsWith(slug + '/');
+  }
   nav.innerHTML = `
-    <a href="#/" data-nav>Vault</a>
-    <a href="#/compose" data-nav>Write a letter</a>
-    <a href="#/recipients" data-nav>Recipients</a>
-    <a href="#/settings" data-nav>Settings</a>
+    <a href="#/" data-nav ${isCurrent('/') ? 'aria-current="page"' : ''}>Vault</a>
+    <a href="#/compose" data-nav ${isCurrent('compose') ? 'aria-current="page"' : ''}>Write a letter</a>
+    <a href="#/recipients" data-nav ${isCurrent('recipients') ? 'aria-current="page"' : ''}>Recipients</a>
+    <a href="#/settings" data-nav ${isCurrent('settings') ? 'aria-current="page"' : ''}>Settings</a>
     <button class="linklike" type="button" data-action="lock">Lock</button>`;
 }
 
@@ -241,9 +262,9 @@ function heartbeatCard() {
   const due = heartbeatDue();
   const overdue = isOverdue();
   return `
-    <section class="card heartbeat ${overdue ? 'heartbeat-overdue' : ''}">
+    <section class="card heartbeat ${overdue ? 'heartbeat-overdue' : ''}" aria-label="Heartbeat status">
       <h2>Heartbeat</h2>
-      <p class="big ${overdue ? 'danger' : ''}">
+      <p class="big ${overdue ? 'danger' : ''}" aria-live="polite">
         ${overdue ? 'Heartbeat missed' : `${d} day${d === 1 ? '' : 's'} left`}
       </p>
       <p class="muted">Next check-in due ${fmtDate(due)}. Sealed letters are
@@ -255,17 +276,18 @@ function heartbeatCard() {
 function letterCard(l) {
   const badge =
     l.status === 'released' ? 'released' : l.status === 'sealed' ? 'sealed' : 'draft';
+  const safeTitle = esc(l.title) || '(Untitled)';
   return `
     <article class="card letter-card">
       <div class="letter-head">
-        <h3><a href="#/letter/${esc(l.id)}">${esc(l.title) || '(Untitled)'}</a></h3>
+        <h3><a href="#/letter/${esc(l.id)}">${safeTitle}</a></h3>
         <span class="badge badge-${badge}">${badge}${l.demo ? ' · demo' : ''}</span>
       </div>
       <p class="muted">For ${esc(recipientName(l.recipientId))} · ${esc(releaseHint(l))}</p>
       <div class="row">
-        <a class="btn btn-ghost" href="#/letter/${esc(l.id)}">Open</a>
-        ${isReleasable(l) ? `<button class="btn btn-gold" type="button" data-action="release" data-id="${esc(l.id)}">Release</button>` : ''}
-        <button class="btn btn-danger-ghost" type="button" data-action="delete-letter" data-id="${esc(l.id)}">Delete</button>
+        <a class="btn btn-ghost" href="#/letter/${esc(l.id)}" aria-label="Open letter: ${safeTitle}">Open</a>
+        ${isReleasable(l) ? `<button class="btn btn-gold" type="button" data-action="release" data-id="${esc(l.id)}" aria-label="Release letter: ${safeTitle}">Release</button>` : ''}
+        <button class="btn btn-danger-ghost" type="button" data-action="delete-letter" data-id="${esc(l.id)}" aria-label="Delete letter: ${safeTitle}">Delete</button>
       </div>
     </article>`;
 }
@@ -425,7 +447,7 @@ function renderRecipients() {
               (r) => `<li>
                 <div><strong>${esc(r.name)}</strong>${r.relation ? ` · ${esc(r.relation)}` : ''}
                 ${r.note ? `<br><span class="muted">${esc(r.note)}</span>` : ''}</div>
-                <button class="btn btn-danger-ghost" type="button" data-action="delete-recipient" data-id="${esc(r.id)}">Delete</button>
+                <button class="btn btn-danger-ghost" type="button" data-action="delete-recipient" data-id="${esc(r.id)}" aria-label="Delete recipient ${esc(r.name)}">Delete</button>
               </li>`
             )
             .join('')}</ul>`
@@ -482,7 +504,7 @@ function renderSettings() {
       will not open).</p>
       <div class="row">
         <button class="btn btn-ghost" type="button" data-action="export">Export encrypted vault</button>
-        <label class="btn btn-ghost file-btn">Import vault
+        <label class="btn btn-ghost file-btn" tabindex="0" role="button" aria-label="Import vault from file">Import vault
           <input type="file" id="import-file" accept="application/json,.json" hidden>
         </label>
       </div>
@@ -710,6 +732,7 @@ async function render() {
       if (letter) {
         const body = await decryptText(getSessionKey(), letter.iv, letter.bodyEnc);
         renderCompose({ ...letter, body });
+        view.focus();
         return;
       }
     }
@@ -718,6 +741,7 @@ async function render() {
   else if (path === 'recipients') renderRecipients();
   else if (path === 'settings') renderSettings();
   else renderVault();
+  view.focus();
   window.scrollTo(0, 0);
 }
 
@@ -800,6 +824,14 @@ document.addEventListener('change', (e) => {
   if (e.target.id === 'import-file' && e.target.files?.[0]) {
     importNow(e.target.files[0]);
     e.target.value = '';
+  }
+});
+
+// Allow the file-import label to be activated by keyboard (Enter or Space).
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('file-btn')) {
+    e.preventDefault();
+    e.target.querySelector('input[type="file"]')?.click();
   }
 });
 

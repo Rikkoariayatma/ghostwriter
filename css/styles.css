@@ -97,8 +97,11 @@ p { margin: 0 0 1em; }
   color: var(--muted);
   text-decoration: none;
   font-size: 0.95rem;
+  border-radius: 4px;
 }
 #nav a:hover { color: var(--gold); }
+#nav a[aria-current="page"],
+#nav a:focus-visible { color: var(--gold); }
 
 .site-footer {
   max-width: 720px;
@@ -153,9 +156,18 @@ label input, label select, label textarea {
   font: inherit;
 }
 label textarea { resize: vertical; min-height: 12rem; font-family: var(--serif); font-size: 1.05rem; line-height: 1.7; }
-input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
+input:focus, select:focus, textarea:focus,
+button:focus-visible, a:focus-visible,
+[role="dialog"] button:focus-visible,
+label.file-btn:focus-within {
   outline: 2px solid var(--gold);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+/* Keyboard-only visible focus ring (augments the outline above) */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 fieldset {
   border: 1px solid var(--line);
@@ -210,6 +222,12 @@ legend { font-size: 0.95rem; padding: 0 0.4em; }
   text-decoration: underline;
 }
 .file-btn { cursor: pointer; }
+/* Make the file-import label reachable by keyboard */
+.file-btn[tabindex] { display: inline-flex; align-items: center; }
+.file-btn:focus-within {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
 .row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
 
 /* letters */

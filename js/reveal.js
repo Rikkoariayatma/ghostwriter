@@ -73,6 +73,7 @@ export function playReveal({ title, body, recipientName, onDone }) {
   const overlay = document.createElement('div');
   overlay.className = 'ceremony';
   overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', 'Letter release ceremony');
   overlay.innerHTML = `
     <canvas class="ceremony-canvas" aria-hidden="true"></canvas>
@@ -112,15 +113,48 @@ export function playReveal({ title, body, recipientName, onDone }) {
   document.body.appendChild(overlay);
   document.body.classList.add('no-scroll');
 
+  // Remember what had focus before the overlay opened so we can restore it.
+  const previouslyFocused = document.activeElement;
+
   const stopEmbers = reduced ? () => {} : startEmbers(overlay.querySelector('.ceremony-canvas'));
 
+  const closeBtn = overlay.querySelector('.ceremony-close');
+
+  // Move focus into the overlay.
+  closeBtn.focus();
+
+  // Focus trap: keep Tab and Shift+Tab inside the overlay.
+  function trapFocus(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = Array.from(
+      overlay.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+    if (focusable.length === 0) { e.preventDefault(); return; }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  overlay.addEventListener('keydown', trapFocus);
+
   const close = () => {
+    overlay.removeEventListener('keydown', trapFocus);
     stopEmbers();
     overlay.remove();
     document.body.classList.remove('no-scroll');
+    // Return focus to whatever triggered the ceremony.
+    if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+      previouslyFocused.focus();
+    }
     if (typeof onDone === 'function') onDone();
   };
-  overlay.querySelector('.ceremony-close').addEventListener('click', close);
+
+  closeBtn.addEventListener('click', close);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
