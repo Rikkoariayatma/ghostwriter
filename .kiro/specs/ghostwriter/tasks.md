@@ -25,7 +25,7 @@ in the Kiro IDE/CLI, so the repo's Kiro usage is real and documented.
 - [x] 8. Demo-data seed (settings page only): one sample recipient +
       one sample sealed letter, removable in one tap, never default
       content. (Implemented with the settings view; clearly labelled.)
-- [ ] 9. **(Kiro)** Vault search & filter: text search across titles
+- [x] 9. **(Kiro)** Vault search & filter: text search across titles
       and recipient names + filter by status (sealed / released /
       draft). Must work with the existing render flow and stay
       dependency-free.

@@ -40,6 +40,8 @@ const state = {
   letters: [],
   recipients: [],
   notice: null,
+  vaultSearch: '',
+  vaultFilter: 'all', // 'all' | 'sealed' | 'released' | 'draft' | 'due-soon'
 };
 
 // ---------- helpers ----------
@@ -127,6 +129,44 @@ async function refresh() {
   state.letters = await getAll('letters');
   state.recipients = await getAll('recipients');
   state.letters.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+// ---------- vault search & filter ----------
+
+// A sealed heartbeat letter whose heartbeat window ends within 7 days (or is already overdue).
+function isDueSoon(letter) {
+  if (letter.status !== 'sealed') return false;
+  if (letter.releaseRule === 'date') {
+    // Date-rule: due soon if the release date is within the next 7 days.
+    return letter.releaseDate != null &&
+      letter.releaseDate > now() &&
+      letter.releaseDate - now() <= 7 * DAY;
+  }
+  // Heartbeat rule: due soon if the heartbeat deadline is within 7 days or already missed.
+  const d = daysLeft();
+  return d !== null && d <= 7;
+}
+
+function applyVaultFilters(letters) {
+  const q = state.vaultSearch.trim().toLowerCase();
+  const f = state.vaultFilter;
+
+  return letters.filter((l) => {
+    // Status filter.
+    if (f === 'sealed'   && l.status !== 'sealed')   return false;
+    if (f === 'released' && l.status !== 'released') return false;
+    if (f === 'draft'    && l.status !== 'draft')    return false;
+    if (f === 'due-soon' && !isDueSoon(l))           return false;
+
+    // Text search against title and recipient name.
+    if (q) {
+      const title = (l.title || '').toLowerCase();
+      const rname = recipientName(l.recipientId).toLowerCase();
+      if (!title.includes(q) && !rname.includes(q)) return false;
+    }
+
+    return true;
+  });
 }
 
 // ---------- lock / setup ----------
@@ -293,18 +333,83 @@ function letterCard(l) {
 }
 
 function renderVault() {
-  const sealed = state.letters.filter((l) => l.status === 'sealed');
-  const drafts = state.letters.filter((l) => l.status === 'draft');
-  const released = state.letters.filter((l) => l.status === 'released');
+  const filtered = applyVaultFilters(state.letters);
+  const isFiltering = state.vaultSearch.trim() !== '' || state.vaultFilter !== 'all';
+
+  const filterChips = [
+    { value: 'all',      label: 'All' },
+    { value: 'sealed',   label: 'Sealed' },
+    { value: 'released', label: 'Released' },
+    { value: 'draft',    label: 'Drafts' },
+    { value: 'due-soon', label: 'Due soon' },
+  ].map(({ value, label }) => `
+    <button
+      type="button"
+      class="filter-chip${state.vaultFilter === value ? ' filter-chip-active' : ''}"
+      data-action="vault-filter"
+      data-filter="${value}"
+      aria-pressed="${state.vaultFilter === value}"
+    >${label}</button>`
+  ).join('');
+
+  const searchBar = `
+    <div class="vault-search-row" role="search">
+      <label class="vault-search-label" for="vault-search">
+        <span class="sr-only">Search letters</span>
+        <input
+          id="vault-search"
+          type="search"
+          class="vault-search-input"
+          placeholder="Search by title or recipient…"
+          value="${esc(state.vaultSearch)}"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search letters by title or recipient name"
+        >
+      </label>
+      <div class="filter-chips" role="group" aria-label="Filter by status">
+        ${filterChips}
+      </div>
+    </div>`;
+
+  let lettersHtml;
+  if (isFiltering) {
+    // Flat list with a summary count.
+    const noun = filtered.length === 1 ? 'letter' : 'letters';
+    const summary = filtered.length === 0
+      ? '<p class="muted vault-empty">No letters match.</p>'
+      : filtered.map(letterCard).join('');
+    lettersHtml = `
+      <section aria-label="Search results">
+        <p class="vault-results-count muted small" aria-live="polite" aria-atomic="true">
+          ${filtered.length} ${noun} found
+        </p>
+        ${summary}
+      </section>`;
+  } else {
+    // Default grouped layout.
+    const sealed   = state.letters.filter((l) => l.status === 'sealed');
+    const drafts   = state.letters.filter((l) => l.status === 'draft');
+    const released = state.letters.filter((l) => l.status === 'released');
+    lettersHtml = `
+      <section>
+        <div class="section-head">
+          <h2>Sealed letters</h2>
+          <a class="btn btn-gold" href="#/compose">Write a letter</a>
+        </div>
+        ${sealed.length
+          ? sealed.map(letterCard).join('')
+          : '<p class="muted">No sealed letters yet. Write one — it will wait here, safely, until its time comes.</p>'}
+      </section>
+      ${released.length ? `<section><h2>Released</h2>${released.map(letterCard).join('')}</section>` : ''}
+      ${drafts.length   ? `<section><h2>Drafts</h2>${drafts.map(letterCard).join('')}</section>`   : ''}`;
+  }
+
   view.innerHTML = `
     ${noticeHtml()}
     ${heartbeatCard()}
-    <section>
-      <div class="section-head"><h2>Sealed letters</h2><a class="btn btn-gold" href="#/compose">Write a letter</a></div>
-      ${sealed.length ? sealed.map(letterCard).join('') : '<p class="muted">No sealed letters yet. Write one — it will wait here, safely, until its time comes.</p>'}
-    </section>
-    ${released.length ? `<section><h2>Released</h2>${released.map(letterCard).join('')}</section>` : ''}
-    ${drafts.length ? `<section><h2>Drafts</h2>${drafts.map(letterCard).join('')}</section>` : ''}`;
+    ${searchBar}
+    ${lettersHtml}`;
 }
 
 function renderCompose(prefill = {}) {
@@ -627,7 +732,7 @@ async function seedDemo() {
     note: 'Demo recipient — remove me in Settings.',
     createdAt: Date.now(),
   };
-  const body = [
+  const body1 = [
     'Dear Maya,',
     '',
     'If you are reading this, I have been quiet for longer than I meant to be.',
@@ -638,23 +743,49 @@ async function seedDemo() {
     '',
     'All my love, always.',
   ].join('\n');
-  const enc = await encryptText(key, body);
+  const body2 = [
+    'Dear Maya,',
+    '',
+    'Happy birthday. I wrote this months ago, knowing this day would come',
+    'whether or not I was here to say it in person.',
+    '',
+    'You are exactly who you were always going to be. I am so proud of you.',
+    '',
+    'With all my love.',
+  ].join('\n');
+  const enc1 = await encryptText(key, body1);
+  const enc2 = await encryptText(key, body2);
   await putOne('recipients', recipient);
+  // Letter 1 — sealed, releases on missed heartbeat.
   await putOne('letters', {
     id: uid(),
     title: 'For Maya, when I am quiet',
     recipientId: recipient.id,
-    bodyEnc: enc.data,
-    iv: enc.iv,
+    bodyEnc: enc1.data,
+    iv: enc1.iv,
     releaseRule: 'heartbeat',
     releaseDate: null,
+    status: 'sealed',
+    createdAt: Date.now() - 1000,
+    releasedAt: null,
+    demo: true,
+  });
+  // Letter 2 — sealed, releases on a date 6 days from now (shows in "Due soon").
+  await putOne('letters', {
+    id: uid(),
+    title: 'For Maya, on her birthday',
+    recipientId: recipient.id,
+    bodyEnc: enc2.data,
+    iv: enc2.iv,
+    releaseRule: 'date',
+    releaseDate: Date.now() + 6 * DAY,
     status: 'sealed',
     createdAt: Date.now(),
     releasedAt: null,
     demo: true,
   });
   await refresh();
-  setNotice('Demo data loaded: one recipient and one sealed letter.');
+  setNotice('Demo data loaded: one recipient and two sealed letters.');
   render();
 }
 
@@ -725,22 +856,27 @@ async function render() {
   const [path, query] = hash.slice(2).split('?');
   const params = new URLSearchParams(query || '');
   if (path === '' || path === '/') renderVault();
-  else if (path === 'compose') {
-    const editId = params.get('edit');
-    if (editId) {
-      const letter = state.letters.find((l) => l.id === editId && l.status === 'draft');
-      if (letter) {
-        const body = await decryptText(getSessionKey(), letter.iv, letter.bodyEnc);
-        renderCompose({ ...letter, body });
-        view.focus();
-        return;
+  else {
+    // Clear vault search state when leaving the vault.
+    state.vaultSearch = '';
+    state.vaultFilter = 'all';
+    if (path === 'compose') {
+      const editId = params.get('edit');
+      if (editId) {
+        const letter = state.letters.find((l) => l.id === editId && l.status === 'draft');
+        if (letter) {
+          const body = await decryptText(getSessionKey(), letter.iv, letter.bodyEnc);
+          renderCompose({ ...letter, body });
+          view.focus();
+          return;
+        }
       }
-    }
-    renderCompose();
-  } else if (path.startsWith('letter/')) renderLetter(path.slice('letter/'.length));
-  else if (path === 'recipients') renderRecipients();
-  else if (path === 'settings') renderSettings();
-  else renderVault();
+      renderCompose();
+    } else if (path.startsWith('letter/')) renderLetter(path.slice('letter/'.length));
+    else if (path === 'recipients') renderRecipients();
+    else if (path === 'settings') renderSettings();
+    else renderVault();
+  }
   view.focus();
   window.scrollTo(0, 0);
 }
@@ -766,6 +902,16 @@ document.addEventListener('submit', (e) => {
 });
 
 document.addEventListener('click', async (e) => {
+  // Vault filter chips are handled first to avoid falling through to unknown-action code.
+  const chip = e.target.closest('[data-action="vault-filter"]');
+  if (chip) {
+    state.vaultFilter = chip.dataset.filter || 'all';
+    renderVault();
+    const next = view.querySelector(`[data-action="vault-filter"][data-filter="${state.vaultFilter}"]`);
+    if (next) next.focus();
+    return;
+  }
+
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const action = btn.dataset.action;
@@ -824,6 +970,20 @@ document.addEventListener('change', (e) => {
   if (e.target.id === 'import-file' && e.target.files?.[0]) {
     importNow(e.target.files[0]);
     e.target.value = '';
+  }
+});
+
+// Vault search — live filter as the user types, preserving cursor position.
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'vault-search') return;
+  state.vaultSearch = e.target.value;
+  const selStart = e.target.selectionStart;
+  const selEnd   = e.target.selectionEnd;
+  renderVault();
+  const input = view.querySelector('#vault-search');
+  if (input) {
+    input.focus();
+    input.setSelectionRange(selStart, selEnd);
   }
 });
 
