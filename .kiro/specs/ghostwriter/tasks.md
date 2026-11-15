@@ -16,7 +16,7 @@ in the Kiro IDE/CLI, so the repo's Kiro usage is real and documented.
       compose, letter view, recipients, settings, heartbeat logic.
 - [x] 5. `js/reveal.js`: ember canvas + staged reveal ceremony,
       reduced-motion path.
-- [ ] 6. **(Kiro)** Property-style tests (`tests/crypto.test.mjs`):
+- [x] 6. **(Kiro)** Property-style tests (`tests/crypto.test.mjs`):
       random round-trips, tamper detection, wrong-passphrase failure,
       export/import round-trip. Run with plain `node`.
 - [ ] 7. **(Kiro)** Accessibility pass: focus order, aria labels on
